@@ -32,8 +32,8 @@ import java.io.File;
 )
 public class BlinkedMain {
 
-    public static final String MOD_ID = "blinked";
-    public static final String MOD_NAME = "Blinked";
+    public static final String MOD_ID = "blink";
+    public static final String MOD_NAME = "Blink";
     public static final String VERSION = "1.12.2-1.0";
     public static Logger logger;
     public static SimpleNetworkWrapper network;
