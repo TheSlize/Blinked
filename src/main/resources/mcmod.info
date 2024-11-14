@@ -1,0 +1,18 @@
+[
+  {
+    "modid": "blinked",
+    "name": "Blinked",
+    "description": "The mod makes you actually blink! Also you can blink yourself.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "",
+    "updateUrl": "",
+    "authorList": [
+      "Th3_Sl1ze"
+    ],
+    "credits": "",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
