@@ -54,7 +54,11 @@ public class BlinkedMain {
     }
 
     public static void reloadConfig() {
-        Configuration config = new Configuration(new File(proxy.getDataDir().getPath() + "/config/blinked.cfg"));
+        File oldConfig = new File(proxy.getDataDir().getPath() + "/config/blinked.cfg");
+        if(oldConfig.exists()){
+            oldConfig.delete();
+        }
+        Configuration config = new Configuration(new File(proxy.getDataDir().getPath() + "/config/blink.cfg"));
         config.load();
         CommonConfig.loadFromConfig(config);
         config.save();

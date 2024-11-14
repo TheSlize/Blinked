@@ -47,7 +47,13 @@ public class ModEventHandler {
 
     public static void setRandomBufferTimer() {
         Random random = new Random();
-        bufferTimer = CommonConfig.minBlinkTimer + random.nextInt(CommonConfig.maxBlinkTimer - CommonConfig.minBlinkTimer);
+        if(CommonConfig.maxBlinkTimer > CommonConfig.minBlinkTimer){
+            bufferTimer = CommonConfig.minBlinkTimer + random.nextInt(CommonConfig.maxBlinkTimer - CommonConfig.minBlinkTimer);
+        } else if(CommonConfig.maxBlinkTimer == CommonConfig.minBlinkTimer) {
+            bufferTimer = CommonConfig.minBlinkTimer;
+        } else {
+            bufferTimer = CommonConfig.maxBlinkTimer + random.nextInt(CommonConfig.minBlinkTimer - CommonConfig.maxBlinkTimer);;
+        }
     }
 
     @SubscribeEvent
@@ -60,7 +66,7 @@ public class ModEventHandler {
                         startBlinking();
                     }
                 } else {
-                    if(!areEyesClosedOnPurpose && !hasTeleportedAndKilled) handleBlinking();
+                    if(!hasTeleportedAndKilled) handleBlinking();
                 }
             }
         }
@@ -72,8 +78,6 @@ public class ModEventHandler {
             EntityPlayer player = event.player;
             if (areEyesClosedOnPurpose && !hasTeleportedAndKilled) {
                 teleportSculptureAndKillPlayer(player);
-                hasTeleportedAndKilled = true;
-                areEyesClosedOnPurpose = false;
             }
         }
     }
@@ -87,6 +91,11 @@ public class ModEventHandler {
     private void handleBlinking() {
         switch (blinkStage) {
             case 1:
+                if(CommonConfig.closeEyeDuration == 0) {
+                    blinkStage = 2;
+                    blinkTickCounter = 0;
+                    applyBlindness();
+                }
                 blinkTickCounter++;
                 if (blinkTickCounter >= CommonConfig.closeEyeDuration) {
                     blinkStage = 2;
@@ -95,14 +104,13 @@ public class ModEventHandler {
                 }
                 break;
             case 2:
-                eyesClosedCounter++;
-                if (eyesClosedCounter >= CommonConfig.blackScreenDuration + 20) {
-                    areEyesClosedOnPurpose = true;
-                    hasTeleportedAndKilled = false;
-                    break;
-                }
                 if (isKeyHeld) {
                     applyBlindness();
+                    eyesClosedCounter++;
+                    if (eyesClosedCounter >= CommonConfig.blackScreenDuration + 20) {
+                        areEyesClosedOnPurpose = true;
+                        hasTeleportedAndKilled = false;
+                    }
                 } else {
                     areEyesClosedOnPurpose = false;
                     blinkTickCounter++;
@@ -114,6 +122,9 @@ public class ModEventHandler {
                 }
                 break;
             case 3:
+                if(CommonConfig.openEyeDuration == 0) {
+                    stopBlinking();
+                }
                 blinkTickCounter++;
                 if (blinkTickCounter >= CommonConfig.openEyeDuration) {
                     stopBlinking();
@@ -197,6 +208,8 @@ public class ModEventHandler {
                     sculpture.setPosition(player.posX, player.posY, player.posZ);
                     sculpture.playSound(Sounds.sculpture_neck_snap, 1.0F, 1.0F);
                     player.attackEntityFrom(DamageSource.causeMobDamage(sculpture), 10000.F);
+                    hasTeleportedAndKilled = true;
+                    areEyesClosedOnPurpose = false;
             }
     }
 }

@@ -14,7 +14,7 @@ public class Keybinds {
     public static KeyBinding KEY_BLINK;
 
     public static void init(){
-        KEY_BLINK=new KeyBinding("Blink", Keyboard.KEY_Y, "Blinked");
+        KEY_BLINK=new KeyBinding("Blink", Keyboard.KEY_Y, "Blink");
         ClientRegistry.registerKeyBinding(KEY_BLINK);
     }
 
