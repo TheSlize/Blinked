@@ -1,5 +1,6 @@
 package com.blinked.handler;
 
+import alexiy.secure.contain.protect.Utils;
 import alexiy.secure.contain.protect.entity.EntitySculpture;
 import alexiy.secure.contain.protect.registration.Sounds;
 import com.blinked.BlinkedMain;
@@ -8,6 +9,7 @@ import com.blinked.packets.PacketUpdateBlink;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.MoverType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.MobEffects;
@@ -41,8 +43,7 @@ public class ModEventHandler {
     private static int blinkStage = 0;
     private static  int blinkTickCounter = 0;
     public static boolean isKeyHeld = false;
-    public static boolean areEyesClosedOnPurpose = false;
-    private static int eyesClosedCounter = 0;
+    public static boolean areEyesClosed = false;
     private static boolean hasTeleportedAndKilled = false;
 
     public static void setRandomBufferTimer() {
@@ -76,8 +77,10 @@ public class ModEventHandler {
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END) {
             EntityPlayer player = event.player;
-            if (areEyesClosedOnPurpose && !hasTeleportedAndKilled) {
-                teleportSculptureAndKillPlayer(player);
+            if (areEyesClosed && !hasTeleportedAndKilled) {
+                if(teleportSculptureAndKillPlayer(player)){
+                    stopBlinking();
+                }
             }
         }
     }
@@ -91,6 +94,7 @@ public class ModEventHandler {
     private void handleBlinking() {
         switch (blinkStage) {
             case 1:
+                areEyesClosed = false;
                 if(CommonConfig.closeEyeDuration == 0) {
                     blinkStage = 2;
                     blinkTickCounter = 0;
@@ -104,24 +108,19 @@ public class ModEventHandler {
                 }
                 break;
             case 2:
+                areEyesClosed = true;
                 if (isKeyHeld) {
                     applyBlindness();
-                    eyesClosedCounter++;
-                    if (eyesClosedCounter >= CommonConfig.blackScreenDuration + 20) {
-                        areEyesClosedOnPurpose = true;
-                        hasTeleportedAndKilled = false;
-                    }
                 } else {
-                    areEyesClosedOnPurpose = false;
                     blinkTickCounter++;
                     if (blinkTickCounter >= CommonConfig.blackScreenDuration) {
                         blinkStage = 3;
                         blinkTickCounter = 0;
-                        eyesClosedCounter = 0;
                     }
                 }
                 break;
             case 3:
+                areEyesClosed = false;
                 if(CommonConfig.openEyeDuration == 0) {
                     stopBlinking();
                 }
@@ -188,28 +187,43 @@ public class ModEventHandler {
 
     @SubscribeEvent
     public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
-        blinkStage = 3;
+        stopBlinking();
         blinkTickCounter = 0;
-        eyesClosedCounter = 0;
-        areEyesClosedOnPurpose = false;
+        areEyesClosed = false;
         hasTeleportedAndKilled = false;
     }
-    private void teleportSculptureAndKillPlayer(EntityPlayer player) {
-            World world = player.world;
-            AxisAlignedBB searchBox = new AxisAlignedBB(
-                    player.posX - 6, player.posY, player.posZ - 6,
-                    player.posX + 6, player.posY + 1, player.posZ + 6
-            );
+    private boolean teleportSculptureAndKillPlayer(EntityPlayer player) {
+        if(player.isCreative() || player.getIsInvulnerable() || player.hurtResistantTime > 0) return false;
+        World world = player.world;
+        AxisAlignedBB searchBox = new AxisAlignedBB(
+                player.posX - 6, player.posY, player.posZ - 6,
+                player.posX + 6, player.posY + 1, player.posZ + 6
+        );
+        AxisAlignedBB searchBoxFar = new AxisAlignedBB(
+                player.posX - 64, player.posY, player.posZ - 64,
+                player.posX + 64, player.posY + 1, player.posZ + 64
+        );
 
-            List<EntitySculpture> sculptures = world.getEntitiesWithinAABB(EntitySculpture.class, searchBox);
+        List<EntitySculpture> sculptures = world.getEntitiesWithinAABB(EntitySculpture.class, searchBox);
+        List<EntityPlayer> players = world.getEntitiesWithinAABB(EntityPlayer.class, searchBoxFar);
+        players.remove(player);
 
-            if (!sculptures.isEmpty()) {
-                    EntitySculpture sculpture = sculptures.get(0);
-                    sculpture.setPosition(player.posX, player.posY, player.posZ);
-                    sculpture.playSound(Sounds.sculpture_neck_snap, 1.0F, 1.0F);
-                    player.attackEntityFrom(DamageSource.causeMobDamage(sculpture), 10000.F);
-                    hasTeleportedAndKilled = true;
-                    areEyesClosedOnPurpose = false;
+        if (!sculptures.isEmpty()) {
+            EntitySculpture sculpture = sculptures.get(0);
+            if(!players.isEmpty()) {
+                for(EntityPlayer plr: players){
+                    if(Utils.isInSightOf(sculpture, plr, 80.0F)){
+                        return false;
+                    }
+                }
             }
+                sculpture.setPosition(player.posX, player.posY, player.posZ);
+                sculpture.playSound(Sounds.sculpture_neck_snap, 1.0F, 1.0F);
+                player.attackEntityFrom(DamageSource.causeMobDamage(sculpture), 10000.F);
+                hasTeleportedAndKilled = true;
+                areEyesClosed = false;
+                return true;
+        }
+        return false;
     }
 }
