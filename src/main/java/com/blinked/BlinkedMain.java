@@ -34,9 +34,9 @@ public class BlinkedMain {
 
     public static final String MOD_ID = "blink";
     public static final String MOD_NAME = "Blink";
-    public static final String VERSION = "1.12.2-1.0";
+    public static final String VERSION = "1.12.2-1.1";
     public static Logger logger;
-    public static SimpleNetworkWrapper network;
+    public static final SimpleNetworkWrapper wrapper = NetworkRegistry.INSTANCE.newSimpleChannel("blinkChannel");
 
     @Mod.Instance(MOD_ID)
     public static BlinkedMain INSTANCE;
@@ -49,8 +49,7 @@ public class BlinkedMain {
             logger = event.getModLog();
         MinecraftForge.EVENT_BUS.register(new ModEventHandler());
         reloadConfig();
-        network = NetworkRegistry.INSTANCE.newSimpleChannel("blinkChannel");
-        network.registerMessage(PacketUpdateBlink.Handler.class, PacketUpdateBlink.class, 0, Side.CLIENT);
+        wrapper.registerMessage(PacketUpdateBlink.Handler.class, PacketUpdateBlink.class, 1, Side.CLIENT);
     }
 
     public static void reloadConfig() {

@@ -22,10 +22,12 @@ import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Random;
 
@@ -35,7 +37,7 @@ public class ModEventHandler {
     public static void setServerBlinking(boolean state) {
         serverCanBlink = state;
         canBlink = state;
-        BlinkedMain.network.sendToAll(new PacketUpdateBlink(state));
+        BlinkedMain.wrapper.sendToAll(new PacketUpdateBlink(state));
     }
     public static boolean canBlink = true;
     public static int bufferTimer;
@@ -53,7 +55,7 @@ public class ModEventHandler {
         } else if(CommonConfig.maxBlinkTimer == CommonConfig.minBlinkTimer) {
             bufferTimer = CommonConfig.minBlinkTimer;
         } else {
-            bufferTimer = CommonConfig.maxBlinkTimer + random.nextInt(CommonConfig.minBlinkTimer - CommonConfig.maxBlinkTimer);;
+            bufferTimer = CommonConfig.maxBlinkTimer + random.nextInt(CommonConfig.minBlinkTimer - CommonConfig.maxBlinkTimer);
         }
     }
 
@@ -75,10 +77,10 @@ public class ModEventHandler {
 
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) {
-            EntityPlayer player = event.player;
+        if (!event.player.world.isRemote && event.phase == TickEvent.Phase.END) {
+            EntityPlayerMP player = (EntityPlayerMP) event.player;
             if (areEyesClosed && !hasTeleportedAndKilled) {
-                if(teleportSculptureAndKillPlayer(player)){
+                if (teleportSculptureAndKillPlayer(player)) {
                     stopBlinking();
                 }
             }
@@ -133,7 +135,7 @@ public class ModEventHandler {
     }
 
     private void applyBlindness() {
-        MinecraftServer server = Minecraft.getMinecraft().getIntegratedServer();
+        MinecraftServer server = FMLCommonHandler.instance().getMinecraftServerInstance();
         if (server != null) {
             for (WorldServer world : server.worlds) {
                 for (EntityPlayer player : world.playerEntities) {
@@ -192,8 +194,14 @@ public class ModEventHandler {
         areEyesClosed = false;
         hasTeleportedAndKilled = false;
     }
-    private boolean teleportSculptureAndKillPlayer(EntityPlayer player) {
-        if(player.isCreative() || player.getIsInvulnerable() || player.hurtResistantTime > 0) return false;
+    private boolean teleportSculptureAndKillPlayer(EntityPlayerMP player) {
+        try {
+            Field invulnerabilityField = EntityPlayerMP.class.getDeclaredField("respawnInvulnerabilityTicks");
+            invulnerabilityField.setAccessible(true);
+            int invulnerabilityTicks = invulnerabilityField.getInt(player);
+            if(player.capabilities.isCreativeMode || player.hurtResistantTime > 0 || player.isInvulnerableDimensionChange() || invulnerabilityTicks > 0){
+                return false;
+            }
         World world = player.world;
         AxisAlignedBB searchBox = new AxisAlignedBB(
                 player.posX - 6, player.posY, player.posZ - 6,
@@ -223,6 +231,11 @@ public class ModEventHandler {
                 hasTeleportedAndKilled = true;
                 areEyesClosed = false;
                 return true;
+        }
+        return false;
+
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
         }
         return false;
     }
