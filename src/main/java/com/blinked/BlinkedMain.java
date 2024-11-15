@@ -1,24 +1,21 @@
 package com.blinked;
 
+import com.blinked.capability.BlinkCapability;
 import com.blinked.config.CommonConfig;
 import com.blinked.handler.CommandBlink;
 import com.blinked.handler.ModEventHandler;
 import com.blinked.packets.PacketUpdateBlink;
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.capabilities.CapabilityManager;
 import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.simpleimpl.SimpleNetworkWrapper;
-import net.minecraftforge.fml.common.registry.GameRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import org.apache.logging.log4j.Logger;
 
@@ -47,6 +44,7 @@ public class BlinkedMain {
     public void preinit(FMLPreInitializationEvent event) {
         if(logger == null)
             logger = event.getModLog();
+        CapabilityManager.INSTANCE.register(BlinkCapability.IEyeState.class, new BlinkCapability.EyeStateStorage(), BlinkCapability.EyeState.FACTORY);
         MinecraftForge.EVENT_BUS.register(new ModEventHandler());
         reloadConfig();
         wrapper.registerMessage(PacketUpdateBlink.Handler.class, PacketUpdateBlink.class, 1, Side.CLIENT);
@@ -62,6 +60,7 @@ public class BlinkedMain {
         CommonConfig.loadFromConfig(config);
         config.save();
     }
+
     @Mod.EventHandler
     public void init(FMLInitializationEvent event) {
         proxy.init(event);

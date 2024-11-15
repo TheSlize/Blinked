@@ -4,23 +4,31 @@ import alexiy.secure.contain.protect.Utils;
 import alexiy.secure.contain.protect.entity.EntitySculpture;
 import alexiy.secure.contain.protect.registration.Sounds;
 import com.blinked.BlinkedMain;
+import com.blinked.capability.BlinkCapability;
 import com.blinked.config.CommonConfig;
 import com.blinked.packets.PacketUpdateBlink;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.MoverType;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.MobEffects;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.ICapabilitySerializable;
+import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -80,8 +88,11 @@ public class ModEventHandler {
         if (!event.player.world.isRemote && event.phase == TickEvent.Phase.END) {
             EntityPlayerMP player = (EntityPlayerMP) event.player;
             if (areEyesClosed && !hasTeleportedAndKilled) {
+                BlinkCapability.IEyeState props = BlinkCapability.getEyeState(event.player);
+                props.setEyesClosed(true);
                 if (teleportSculptureAndKillPlayer(player)) {
                     stopBlinking();
+                    props.setEyesClosed(false);
                 }
             }
         }
@@ -191,9 +202,18 @@ public class ModEventHandler {
     public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         stopBlinking();
         blinkTickCounter = 0;
-        areEyesClosed = false;
+        BlinkCapability.IEyeState props = BlinkCapability.getEyeState(event.player);
+        props.setEyesClosed(false);
         hasTeleportedAndKilled = false;
     }
+
+    @SubscribeEvent
+    public void attachCapabilities(AttachCapabilitiesEvent<Entity> event) {
+        if (event.getObject() instanceof EntityPlayer) {
+            event.addCapability(new ResourceLocation("blink", "eye_state"), new BlinkCapability.EyeStateProvider());
+        }
+    }
+
     private boolean teleportSculptureAndKillPlayer(EntityPlayerMP player) {
         try {
             Field invulnerabilityField = EntityPlayerMP.class.getDeclaredField("respawnInvulnerabilityTicks");
@@ -213,14 +233,15 @@ public class ModEventHandler {
         );
 
         List<EntitySculpture> sculptures = world.getEntitiesWithinAABB(EntitySculpture.class, searchBox);
-        List<EntityPlayer> players = world.getEntitiesWithinAABB(EntityPlayer.class, searchBoxFar);
+        List<EntityPlayerMP> players = world.getEntitiesWithinAABB(EntityPlayerMP.class, searchBoxFar);
         players.remove(player);
 
         if (!sculptures.isEmpty()) {
             EntitySculpture sculpture = sculptures.get(0);
             if(!players.isEmpty()) {
-                for(EntityPlayer plr: players){
-                    if(Utils.isInSightOf(sculpture, plr, 80.0F)){
+                for(EntityPlayerMP plr: players){
+                    BlinkCapability.IEyeState eyeState = BlinkCapability.getEyeState(plr);
+                    if (eyeState != null && !eyeState.areEyesClosed() && Utils.isInSightOf(sculpture, plr, 80.0F)) {
                         return false;
                     }
                 }
