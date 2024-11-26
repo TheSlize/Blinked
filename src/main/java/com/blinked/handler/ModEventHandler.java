@@ -16,6 +16,8 @@ import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -167,6 +169,13 @@ public class ModEventHandler {
                 }
             }
                 if(player.isDead) return false;
+                Vec3d playerPos = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);
+                Vec3d sculpturePos = new Vec3d(sculpture.posX, sculpture.posY + sculpture.getEyeHeight(), sculpture.posZ);
+                RayTraceResult result = world.rayTraceBlocks(playerPos, sculpturePos, false, true, false);
+
+                if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
+                    return false;
+                }
                 sculpture.setPosition(player.posX, player.posY, player.posZ);
                 sculpture.playSound(Sounds.sculpture_neck_snap, 1.0F, 1.0F);
                 player.attackEntityFrom(DamageSource.causeMobDamage(sculpture), 10000.F);
