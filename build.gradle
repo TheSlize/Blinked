@@ -15,7 +15,7 @@ apply plugin: 'maven-publish'
 
 
 group = 'com.blinked'
-version = '1.12.2-1.1'
+version = '1.12.2-1.2'
 archivesBaseName = 'blink'
 
 compileJava.options.encoding = 'UTF-8'

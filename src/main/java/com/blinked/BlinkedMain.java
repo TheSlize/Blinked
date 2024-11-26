@@ -3,7 +3,10 @@ package com.blinked;
 import com.blinked.capability.BlinkCapability;
 import com.blinked.config.CommonConfig;
 import com.blinked.handler.CommandBlink;
+import com.blinked.handler.Keybinds;
 import com.blinked.handler.ModEventHandler;
+import com.blinked.packets.KeybindPacket;
+import com.blinked.packets.PacketUpdateAlpha;
 import com.blinked.packets.PacketUpdateBlink;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.capabilities.CapabilityManager;
@@ -31,7 +34,7 @@ public class BlinkedMain {
 
     public static final String MOD_ID = "blink";
     public static final String MOD_NAME = "Blink";
-    public static final String VERSION = "1.12.2-1.1";
+    public static final String VERSION = "1.12.2-1.2";
     public static Logger logger;
     public static final SimpleNetworkWrapper wrapper = NetworkRegistry.INSTANCE.newSimpleChannel("blinkChannel");
 
@@ -42,12 +45,20 @@ public class BlinkedMain {
     public static ServerProxy proxy;
     @Mod.EventHandler
     public void preinit(FMLPreInitializationEvent event) {
-        if(logger == null)
-            logger = event.getModLog();
+            if(logger == null)
+                logger = event.getModLog();
         CapabilityManager.INSTANCE.register(BlinkCapability.IEyeState.class, new BlinkCapability.EyeStateStorage(), BlinkCapability.EyeState.FACTORY);
         MinecraftForge.EVENT_BUS.register(new ModEventHandler());
         reloadConfig();
+        if(event.getSide() == Side.CLIENT) {
+            Keybinds keyHandler = new Keybinds();
+            MinecraftForge.EVENT_BUS.register(keyHandler);
+        }
         wrapper.registerMessage(PacketUpdateBlink.Handler.class, PacketUpdateBlink.class, 1, Side.CLIENT);
+        wrapper.registerMessage(KeybindPacket.Handler.class, KeybindPacket.class, 3, Side.SERVER);
+        wrapper.registerMessage(KeybindPacket.Handler.class, KeybindPacket.class, 2, Side.CLIENT);
+        wrapper.registerMessage(PacketUpdateAlpha.Handler.class, PacketUpdateAlpha.class, 4, Side.CLIENT);
+        proxy.registerRenderInfo();
     }
 
     public static void reloadConfig() {
