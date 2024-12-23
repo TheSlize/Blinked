@@ -23,6 +23,7 @@ import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
+import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
@@ -86,8 +87,10 @@ public class ModEventHandler {
                     if (props.getBlinkTimer() <= 0) {
                         handleBlinking(props, player);
                     }
-                    if (teleportSculptureAndKillPlayer(player)) {
-                        stopBlinking(props);
+                    if(Loader.isModLoaded("scp")) {
+                        if (teleportSculptureAndKillPlayer(player)) {
+                            stopBlinking(props);
+                        }
                     }
                 }
             }
@@ -133,9 +136,8 @@ public class ModEventHandler {
         props.setBlinkTimer(setRandomBufferTimer());
         props.setEyesClosed(false);
     }
-
+    @Optional.Method(modid = "scp")
     private boolean teleportSculptureAndKillPlayer(EntityPlayer player) {
-        if(Loader.isModLoaded("scp")) {
             try {
                 if (FMLCommonHandler.instance().getMinecraftServerInstance() != null) {
                     EntityPlayerMP plrMP = (EntityPlayerMP) player;
@@ -189,6 +191,5 @@ public class ModEventHandler {
                 e.printStackTrace();
             }
             return false;
-        } else return false;
     }
 }
