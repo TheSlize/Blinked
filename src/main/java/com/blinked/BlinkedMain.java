@@ -27,8 +27,7 @@ import java.io.File;
 @Mod(
         modid = BlinkedMain.MOD_ID,
         name = BlinkedMain.MOD_NAME,
-        version = BlinkedMain.VERSION,
-        dependencies = "required-after:scp"
+        version = BlinkedMain.VERSION
 )
 public class BlinkedMain {
 

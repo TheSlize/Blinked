@@ -21,6 +21,7 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.PlayerEvent;
@@ -134,58 +135,60 @@ public class ModEventHandler {
     }
 
     private boolean teleportSculptureAndKillPlayer(EntityPlayer player) {
-        try {
-            if(FMLCommonHandler.instance().getMinecraftServerInstance() != null) {
-                EntityPlayerMP plrMP = (EntityPlayerMP) player;
-                Field invulnerabilityField = ObfuscationReflectionHelper.findField(EntityPlayerMP.class, "field_147101_bU");
-                invulnerabilityField.setAccessible(true);
-                int invulnerabilityTicks = invulnerabilityField.getInt(plrMP);
-                if (plrMP.capabilities.isCreativeMode || plrMP.hurtResistantTime > 0 || plrMP.isInvulnerableDimensionChange() || invulnerabilityTicks > 0) {
-                    return false;
-                }
-            }
-        World world = player.world;
-        AxisAlignedBB searchBox = new AxisAlignedBB(
-                player.posX - 6, player.posY, player.posZ - 6,
-                player.posX + 6, player.posY + 1, player.posZ + 6
-        );
-        AxisAlignedBB searchBoxFar = new AxisAlignedBB(
-                player.posX - 64, player.posY, player.posZ - 64,
-                player.posX + 64, player.posY + 1, player.posZ + 64
-        );
-
-        List<EntitySculpture> sculptures = world.getEntitiesWithinAABB(EntitySculpture.class, searchBox);
-        List<EntityPlayer> players = world.getEntitiesWithinAABB(EntityPlayerMP.class, searchBoxFar);
-        players.remove(player);
-
-        if (!sculptures.isEmpty()) {
-            EntitySculpture sculpture = sculptures.get(0);
-            if(!players.isEmpty()) {
-                for(EntityPlayer plr: players){
-                    BlinkCapability.IEyeState eyeState = BlinkCapability.getEyeState(plr);
-                    if (!plr.isDead && eyeState != null && !eyeState.areEyesClosed() && Utils.isInSightOf(sculpture, plr, 80.0F)) {
+        if(Loader.isModLoaded("scp")) {
+            try {
+                if (FMLCommonHandler.instance().getMinecraftServerInstance() != null) {
+                    EntityPlayerMP plrMP = (EntityPlayerMP) player;
+                    Field invulnerabilityField = ObfuscationReflectionHelper.findField(EntityPlayerMP.class, "field_147101_bU");
+                    invulnerabilityField.setAccessible(true);
+                    int invulnerabilityTicks = invulnerabilityField.getInt(plrMP);
+                    if (plrMP.capabilities.isCreativeMode || plrMP.hurtResistantTime > 0 || plrMP.isInvulnerableDimensionChange() || invulnerabilityTicks > 0) {
                         return false;
                     }
                 }
-            }
-                if(player.isDead) return false;
-                Vec3d playerPos = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);
-                Vec3d sculpturePos = new Vec3d(sculpture.posX, sculpture.posY + sculpture.getEyeHeight(), sculpture.posZ);
-                RayTraceResult result = world.rayTraceBlocks(playerPos, sculpturePos, false, true, false);
+                World world = player.world;
+                AxisAlignedBB searchBox = new AxisAlignedBB(
+                        player.posX - 6, player.posY, player.posZ - 6,
+                        player.posX + 6, player.posY + 1, player.posZ + 6
+                );
+                AxisAlignedBB searchBoxFar = new AxisAlignedBB(
+                        player.posX - 64, player.posY, player.posZ - 64,
+                        player.posX + 64, player.posY + 1, player.posZ + 64
+                );
 
-                if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
-                    return false;
+                List<EntitySculpture> sculptures = world.getEntitiesWithinAABB(EntitySculpture.class, searchBox);
+                List<EntityPlayer> players = world.getEntitiesWithinAABB(EntityPlayerMP.class, searchBoxFar);
+                players.remove(player);
+
+                if (!sculptures.isEmpty()) {
+                    EntitySculpture sculpture = sculptures.get(0);
+                    if (!players.isEmpty()) {
+                        for (EntityPlayer plr : players) {
+                            BlinkCapability.IEyeState eyeState = BlinkCapability.getEyeState(plr);
+                            if (!plr.isDead && eyeState != null && !eyeState.areEyesClosed() && Utils.isInSightOf(sculpture, plr, 80.0F)) {
+                                return false;
+                            }
+                        }
+                    }
+                    if (player.isDead) return false;
+                    Vec3d playerPos = new Vec3d(player.posX, player.posY + player.getEyeHeight(), player.posZ);
+                    Vec3d sculpturePos = new Vec3d(sculpture.posX, sculpture.posY + sculpture.getEyeHeight(), sculpture.posZ);
+                    RayTraceResult result = world.rayTraceBlocks(playerPos, sculpturePos, false, true, false);
+
+                    if (result != null && result.typeOfHit == RayTraceResult.Type.BLOCK) {
+                        return false;
+                    }
+                    sculpture.setPosition(player.posX, player.posY, player.posZ);
+                    sculpture.playSound(Sounds.sculpture_neck_snap, 1.0F, 1.0F);
+                    player.attackEntityFrom(DamageSource.causeMobDamage(sculpture), 10000.F);
+                    return true;
                 }
-                sculpture.setPosition(player.posX, player.posY, player.posZ);
-                sculpture.playSound(Sounds.sculpture_neck_snap, 1.0F, 1.0F);
-                player.attackEntityFrom(DamageSource.causeMobDamage(sculpture), 10000.F);
-                return true;
-        }
-        return false;
+                return false;
 
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-        return false;
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            return false;
+        } else return false;
     }
 }
